@@ -32,7 +32,7 @@
 
         .gallery-track {
             display: flex;
-            gap: 15px; /* Jarak antar foto diperkecil */
+            gap: 15px; 
             width: max-content;
             padding: 10px 0;
             animation: scroll-horizontal 40s linear infinite;
@@ -50,8 +50,8 @@
             overflow: hidden;
             flex-shrink: 0;
             background-color: transparent; 
-            box-shadow: none; /* BAYANGAN DAN GARIS DIHILANGKAN */
-            border: none; /* GARIS KOTAK DIHILANGKAN TOTAL */
+            box-shadow: none; 
+            border: none; 
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
         }
@@ -59,7 +59,7 @@
         .photo-card:hover {
             transform: scale(1.05);
             z-index: 5;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.25); /* Bayangan hanya muncul saat di-hover */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25); 
         }
 
         .photo-card img {
@@ -94,21 +94,21 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* Lightbox */
+        /* Lightbox (Mengisi layar penuh) */
         .lightbox {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 9999;
             left: 0;
             top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(15, 27, 21, 0.95);
-            backdrop-filter: blur(8px);
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 27, 21, 0.97);
+            backdrop-filter: blur(10px);
             justify-content: center;
             align-items: center;
             flex-direction: column;
-            padding: 15px;
+            padding: 20px;
         }
 
         .lightbox.active {
@@ -122,14 +122,14 @@
         }
 
         .lightbox-content {
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
             text-align: center;
         }
 
         .lightbox-content img {
             max-width: 100%;
-            max-height: 70vh;
+            max-height: 75vh;
             border-radius: 8px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.6);
             border: 3px solid white;
@@ -138,39 +138,54 @@
 
         .lightbox-caption {
             color: white;
-            margin-top: 15px;
-            font-size: 0.95rem;
-            line-height: 1.4;
+            margin-top: 20px;
+            font-size: 1.1rem;
+            line-height: 1.5;
         }
 
         .lightbox-source {
             color: #a5d6a7;
-            margin-top: 8px;
-            font-size: 0.8rem;
+            margin-top: 10px;
+            font-size: 0.9rem;
             font-style: italic;
         }
 
         .close-btn {
             position: absolute;
-            top: 15px;
-            right: 20px;
+            top: 25px;
+            right: 35px;
             color: white;
-            font-size: 30px;
+            font-size: 40px;
             font-weight: bold;
             cursor: pointer;
-            background: rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.2);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: #4caf50;
+        }
+        
+        /* Pesan instruksi keluar (khusus mobile) */
+        .exit-hint {
+            color: #888;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            display: none;
         }
 
         @media (max-width: 768px) {
             .photo-card { width: 250px; height: 170px; }
             .photo-caption { font-size: 0.75rem; }
+            .lightbox-caption { font-size: 0.95rem; }
+            .exit-hint { display: block; }
         }
     </style>
 </head>
@@ -186,6 +201,7 @@
             <img id="lightboxImg" src="" alt="">
             <p class="lightbox-caption" id="lightboxCaption"></p>
             <p class="lightbox-source">(Sumber Foto: Dokumentasi WALHI Jatim)</p>
+            <p class="exit-hint">Tekan tombol kembali (Back) atau arahkan kursor ke atas untuk keluar</p>
         </div>
     </div>
 
@@ -263,22 +279,40 @@
         photos.forEach(photo => track.appendChild(createPhotoCard(photo)));
         photos.forEach(photo => track.appendChild(createPhotoCard(photo, true)));
 
-        // Logika Lightbox
+        // Fungsi Buka Lightbox + Fullscreen
         track.addEventListener('click', (e) => {
             const card = e.target.closest('.photo-card');
             if (card && card.dataset.url) {
                 lightboxImg.src = card.dataset.url;
                 lightboxCaption.innerText = card.dataset.desc;
                 lightbox.classList.add('active');
+                
+                // Paksa masuk mode Fullscreen layar penuh
+                const docEl = document.documentElement;
+                if (docEl.requestFullscreen) {
+                    docEl.requestFullscreen().catch(err => console.log("Fullscreen gagal:", err));
+                } else if (docEl.webkitRequestFullscreen) { /* Safari */
+                    docEl.webkitRequestFullscreen();
+                }
             }
         });
 
-        closeBtn.addEventListener('click', () => lightbox.classList.remove('active'));
+        // Fungsi Tutup Lightbox + Keluar Fullscreen
+        const closeLightbox = () => {
+            lightbox.classList.remove('active');
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitFullscreenElement && document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            }
+        };
+
+        closeBtn.addEventListener('click', closeLightbox);
         lightbox.addEventListener('click', (e) => {
-            if (e.target === lightbox) lightbox.classList.remove('active');
+            if (e.target === lightbox) closeLightbox();
         });
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') lightbox.classList.remove('active');
+            if (e.key === 'Escape') closeLightbox();
         });
     </script>
 </body>
