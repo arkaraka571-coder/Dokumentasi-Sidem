@@ -24,28 +24,29 @@
 
         .gallery-wrapper {
             width: 100%;
-            overflow-x: auto; /* Untuk swipe native di HP */
-            overflow-y: hidden;
+            overflow: hidden;
             position: relative;
             cursor: grab;
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
-            -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
         }
 
         .gallery-wrapper:active {
             cursor: grabbing;
         }
 
-        /* Sembunyikan scrollbar agar seamless */
-        .gallery-wrapper::-webkit-scrollbar { display: none; }
-        .gallery-wrapper { -ms-overflow-style: none; scrollbar-width: none; }
-
         .gallery-track {
             display: flex;
             gap: 15px;
             width: max-content;
             padding: 10px 0;
+            /* Animasi otomatis berjalan dari kanan ke kiri */
+            animation: scroll-horizontal 40s linear infinite;
+        }
+
+        /* Class untuk menghentikan animasi saat di-drag/swipe */
+        .gallery-track.paused {
+            animation-play-state: paused;
         }
 
         .photo-card {
@@ -75,7 +76,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            pointer-events: none; /* Mencegah drag image bawaan browser */
+            pointer-events: none;
         }
 
         .photo-caption {
@@ -96,6 +97,11 @@
         .photo-card:hover .photo-caption {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        @keyframes scroll-horizontal {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         /* Lightbox (Full Screen) */
@@ -273,82 +279,84 @@
         photos.forEach(photo => track.appendChild(createPhotoCard(photo)));
         photos.forEach(photo => track.appendChild(createPhotoCard(photo, true)));
 
-        // === LOGIKA HIBRIDA (AUTO + MANUAL) ===
-        let isPaused = false;
-        let resumeTimeout;
-        let isMouseDown = false;
-        let startX, startScrollLeft;
+        // === LOGIKA DRAG & SWIPE MANUAL ===
+        let isDown = false;
+        let startX, scrollLeft;
         let hasDragged = false;
+        let resumeTimeout;
 
-        // 1. Auto Scroll Loop
-        function autoScroll() {
-            if (!isPaused) {
-                wrapper.scrollLeft += 0.5; // Kecepatan geser otomatis
-                if (wrapper.scrollLeft >= track.scrollWidth / 2) {
-                    wrapper.scrollLeft = 0;
-                }
-            }
-            requestAnimationFrame(autoScroll);
-        }
-        requestAnimationFrame(autoScroll);
+        const startDrag = (pageX) => {
+            isDown = true;
+            hasDragged = false;
+            track.classList.add('paused'); // Hentikan auto scroll
+            clearTimeout(resumeTimeout); // Batalkan resume jika disentuh lagi
+            
+            // Ambil posisi transform CSS saat ini
+            const transform = window.getComputedStyle(track).getPropertyValue('transform');
+            const matrix = new DOMMatrix(transform);
+            const currentX = matrix.m41;
+            
+            startX = pageX;
+            scrollLeft = currentX;
+            
+            // Hentikan animasi CSS sejenak dan pakai transform manual
+            track.style.animation = 'none';
+            track.style.transform = `translateX(${currentX}px)`;
+        };
 
-        // Helper Pause/Resume
-        function pauseAutoScroll() {
-            isPaused = true;
-            clearTimeout(resumeTimeout);
-        }
-        function resumeAutoScroll() {
-            // Lanjut otomatis 2.5 detik setelah user berhenti menggeser
+        const moveDrag = (pageX) => {
+            if (!isDown) return;
+            const x = pageX;
+            const walk = (x - startX) * 1.5;
+            if (Math.abs(walk) > 5) hasDragged = true;
+            
+            let newPos = scrollLeft + walk;
+            
+            // Logika Looping tak terbatas saat di-drag
+            const trackWidth = track.scrollWidth / 2;
+            if (newPos > 0) newPos -= trackWidth;
+            if (newPos < -trackWidth) newPos += trackWidth;
+
+            track.style.transform = `translateX(${newPos}px)`;
+        };
+
+        const endDrag = () => {
+            if (!isDown) return;
+            isDown = false;
+            
+            // Kembalikan ke animasi CSS otomatis dalam 2.5 detik
             resumeTimeout = setTimeout(() => {
-                isPaused = false;
+                const transform = window.getComputedStyle(track).getPropertyValue('transform');
+                const matrix = new DOMMatrix(transform);
+                const currentX = matrix.m41;
+                
+                // Set posisi terakhir sebagai titik mulai animasi
+                track.style.animation = '';
+                track.style.transform = `translateX(${currentX}px)`;
+                
+                // Paksa animasi mulai dari posisi tersebut
+                track.offsetHeight; 
+                track.classList.remove('paused');
+                track.style.transform = '';
             }, 2500);
-        }
+        };
 
-        // 2. Desktop Drag (Mouse)
+        // Desktop (Mouse Events)
         wrapper.addEventListener('mousedown', (e) => {
-            isMouseDown = true;
-            hasDragged = false;
-            startX = e.pageX;
-            startScrollLeft = wrapper.scrollLeft;
-            pauseAutoScroll();
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isMouseDown) return;
             e.preventDefault();
-            const walk = (e.pageX - startX) * 1.5;
-            if (Math.abs(walk) > 5) hasDragged = true;
-            wrapper.scrollLeft = startScrollLeft - walk;
+            startDrag(e.pageX);
         });
+        window.addEventListener('mousemove', (e) => moveDrag(e.pageX));
+        window.addEventListener('mouseup', endDrag);
+        window.addEventListener('mouseleave', endDrag);
 
-        window.addEventListener('mouseup', () => {
-            if (isMouseDown) {
-                isMouseDown = false;
-                resumeAutoScroll();
-            }
-        });
-
-        // 3. Mobile Swipe (Native Scroll, hanya deteksi untuk pause)
-        let touchStartX = 0;
-        wrapper.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].pageX;
-            hasDragged = false;
-            pauseAutoScroll();
-        }, { passive: true });
-
-        wrapper.addEventListener('touchmove', (e) => {
-            const walk = e.touches[0].pageX - touchStartX;
-            if (Math.abs(walk) > 5) hasDragged = true;
-            // Biarkan browser menangani gerakan scrollnya agar mulus (native)
-        }, { passive: true });
-
-        wrapper.addEventListener('touchend', () => {
-            resumeAutoScroll();
-        });
+        // Mobile (Touch Events)
+        wrapper.addEventListener('touchstart', (e) => startDrag(e.touches[0].pageX), { passive: true });
+        wrapper.addEventListener('touchmove', (e) => moveDrag(e.touches[0].pageX), { passive: true });
+        wrapper.addEventListener('touchend', endDrag);
 
         // === LOGIKA LIGHTBOX (KLIK = FULLSCREEN) ===
         track.addEventListener('click', (e) => {
-            // Jangan buka lightbox jika user baru saja nge-drag/swipe
             if (hasDragged) {
                 hasDragged = false;
                 return;
@@ -360,7 +368,6 @@
                 lightboxCaption.innerText = card.dataset.desc;
                 lightbox.classList.add('active');
                 
-                // Paksa masuk mode Fullscreen layar penuh
                 const docEl = document.documentElement;
                 if (docEl.requestFullscreen) {
                     docEl.requestFullscreen().catch(err => console.log("Fullscreen gagal:", err));
