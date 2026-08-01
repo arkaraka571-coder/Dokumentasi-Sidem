@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumentasi Beach Clean & Brand Audit</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #ffffff;
+            color: #1b5e20;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            color: #2e7d32;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        header h2 {
+            color: #558b2f;
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .source-credit {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #777;
+            font-style: italic;
+        }
+
+        .divider {
+            width: 100px;
+            height: 4px;
+            background-color: #4caf50;
+            margin: 15px auto;
+            border-radius: 2px;
+        }
+
+        /* Tombol Opsi Gerakan */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .controls button {
+            padding: 8px 20px;
+            border: 2px solid #4caf50;
+            background-color: white;
+            color: #2e7d32;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .controls button.active,
+        .controls button:hover {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        /* Kontainer Galeri */
+        .gallery-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            overflow: hidden;
+            position: relative;
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        /* Mode Manual: Mengaktifkan Scroll/Drag Horizontal */
+        .gallery-wrapper.manual-mode {
+            overflow-x: auto;
+            cursor: grab;
+            scrollbar-width: thin;
+            scrollbar-color: #4caf50 #e8f5e9;
+        }
+
+        .gallery-wrapper.manual-mode:active {
+            cursor: grabbing;
+        }
+
+        .gallery-wrapper.manual-mode::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .gallery-wrapper.manual-mode::-webkit-scrollbar-thumb {
+            background-color: #4caf50;
+            border-radius: 10px;
+        }
+
+        /* Trek Foto */
+        .gallery-track {
+            display: flex;
+            gap: 25px;
+            width: max-content;
+            padding: 10px 0;
+        }
+
+        /* Animasi Otomatis (Hanya aktif jika tidak di manual-mode) */
+        .gallery-wrapper:not(.manual-mode) .gallery-track {
+            animation: scroll-horizontal 50s linear infinite;
+        }
+
+        .gallery-wrapper:not(.manual-mode):hover .gallery-track {
+            animation-play-state: paused;
+        }
+
+        .photo-card {
+            position: relative;
+            width: 350px;
+            height: 250px;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background-color: #f1f8e9;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.15);
+            transition: transform 0.3s ease;
+            border: 1px solid #e0e0e0;
+            user-select: none; /* Mencegah gambar ter-select saat di-drag */
+        }
+
+        .photo-card:hover {
+            transform: scale(1.03);
+            z-index: 5;
+            box-shadow: 0 10px 25px rgba(46, 125, 50, 0.3);
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none; /* Memudahkan deteksi klik drag */
+        }
+
+        .photo-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, rgba(27, 94, 32, 0.95), rgba(27, 94, 32, 0.7), transparent);
+            color: #ffffff;
+            padding: 30px 15px 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .photo-card:hover .photo-caption {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @keyframes scroll-horizontal {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Lightbox (Foto Diperbesar) */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 27, 21, 0.95);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .lightbox.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .lightbox-content {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .lightbox-content img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 10px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.6);
+            border: 4px solid white;
+            object-fit: contain;
+        }
+
+        .lightbox-caption {
+            color: white;
+            margin-top: 20px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .lightbox-source {
+            color: #a5d6a7;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 25px;
+            right: 40px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Dokumentasi Beach Clean & Brand Audit</h1>
+        <div class="divider"></div>
+        <h2>Pantai Sidem, Tulungagung &bull; 18 Juli 2026</h2>
+        <p class="source-credit">(Sumber Foto: Dokumentasi WALHI Jatim)</p>
+    </header>
+
+    <div class="controls">
+        <button id="autoBtn" class="active">Geser Otomatis</button>
+        <button id="manualBtn">Geser Manual (Drag/Scroll)</button>
+    </div>
+
+    <div class="gallery-wrapper" id="galleryWrapper">
+        <div class="gallery-track" id="galleryTrack"></div>
+    </div>
+
+    <!-- Struktur Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <span class="close-btn" id="closeBtn">&times;</span>
+        <div class="lightbox-content">
+            <img id="lightboxImg" src="" alt="">
+            <p class="lightbox-caption" id="lightboxCaption"></p>
+            <p class="lightbox-source">(Sumber Foto: Dokumentasi WALHI Jatim)</p>
+        </div>
+    </div>
+
+    <script>
+        const photos = [
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/9afb9375-4cac-4565-8a87-d1a13f61c3a8.jpg?auth_key=1885592913-ff1e0d563a234f75bbf61f52d8462b66-0-50102de3f7df60e5a3de3bee5adc774f",
+                desc: "Relawan melakukan pemilahan sampah anorganik hasil dari sepanjang pantai."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/3f35311d-2b56-48c3-a08a-ac3a31d38cb3.jpg?auth_key=1885592913-e52e3394e7f54752befa20733bcbd9a7-0-ae871194473bd43586b18bf81a9ad7ac",
+                desc: "Aksi bersih pantai bersama WALHI Jatim, ALWI, PPLH Mangkubumi, Mapala Himalaya, dan LPM Aksara."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/de5112d0-0793-4546-9c82-2901992a6fc7.jpg?auth_key=1885592913-bed34cccd159490daf51dc802770e55a-0-85b0437818a71ed1a837fe06892d1b18",
+                desc: "Pengumpulan sampah dari area tepi laut yang terbawa arus Sungai Niyama."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/319e75dc-9750-4605-ac44-9051304bbf4e.jpg?auth_key=1885592913-48cd6cc0158948b883f4e250de9e1c88-0-cc8abe5687ff9ace3b9018d44554eb23",
+                desc: "Tumpukan karung berisi sampah siap ditimbang. Total keseluruhan mencapai 252,15 kg."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/c0b78b93-b9a8-4970-ac57-099cebf648d0.jpg?auth_key=1885592913-6734b0cdbd0c498dba7766d20a493609-0-c4b6424f80a3c234aa83e352e3ca8a19",
+                desc: "Proses identifikasi merek pada kemasan sachet plastik sekali pakai."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/1a429874-88fb-4dbb-bdba-c48d9f272afb.jpg?auth_key=1885592913-9ffb29d3b21c4a6995e0e21e49b56216-0-113f099bee05bffdd7f07eb006e535b1",
+                desc: "Kemasan Pop Mie mendominasi sampah kertas dengan total 54 buah ditemukan."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/d8212bc1-d0fe-4b36-918f-afa282b0e049.jpg?auth_key=1885592913-efc40872a31f4ea7b459071100081b14-0-8323143801eb06ed921d56372e15e626",
+                desc: "AMDK merek Club mendominasi gelas sampah minum sekali pakai dengan 101 buah."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/028db4ae-ab50-41d2-8933-fbd38aa43b29.jpg?auth_key=1885592913-6747136180bf420294ff8f29b08057f2-0-312f4ed0c5d555dda0bdb6b6ab82b92d",
+                desc: "Relawan lengkap dengan sarung tangan membersihkan sampah dan ranting di pantai."
+            },
+            {
+                url: "https://z-cdn-media.chatglm.cn/files/a56be526-e650-49a4-92ab-8dbe5ecdfd70.jpg?auth_key=1885592913-594edc7745664e9982fcbfc3a4d3f21b-0-15482755d9d7fa57b3c61f1f569a0320",
+                desc: "Penimbangan sampah kemasan sachet. Merek Mie Sedap dan Luwak White Coffee paling banyak."
+            }
+        ];
+
+        const track = document.getElementById('galleryTrack');
+        const wrapper = document.getElementById('galleryWrapper');
+        const autoBtn = document.getElementById('autoBtn');
+        const manualBtn = document.getElementById('manualBtn');
+        
+        // Elemen Lightbox
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+        const lightboxCaption = document.getElementById('lightboxCaption');
+        const closeBtn = document.getElementById('closeBtn');
+
+        // 1. Fungsi Membuat Kartu Foto
+        function createPhotoCard(photo, isDuplicate = false) {
+            const card = document.createElement('div');
+            card.className = 'photo-card';
+            
+            // Simpan data asli di atribut data-*
+            if (!isDuplicate) {
+                card.dataset.url = photo.url;
+                card.dataset.desc = photo.desc;
+            }
+
+            const img = document.createElement('img');
+            img.src = photo.url;
+            img.alt = photo.desc;
+            img.draggable = false; // Cegah ghost image saat drag
+
+            const caption = document.createElement('div');
+            caption.className = 'photo-caption';
+            caption.innerText = photo.desc;
+
+            card.appendChild(img);
+            card.appendChild(caption);
+            return card;
+        }
+
+        // Masukkan foto asli & duplikat untuk loop
+        photos.forEach(photo => track.appendChild(createPhotoCard(photo)));
+        photos.forEach(photo => track.appendChild(createPhotoCard(photo, true)));
+
+        // 2. Logika Tombol Toggle Mode
+        autoBtn.addEventListener('click', () => {
+            wrapper.classList.remove('manual-mode');
+            autoBtn.classList.add('active');
+            manualBtn.classList.remove('active');
+        });
+
+        manualBtn.addEventListener('click', () => {
+            wrapper.classList.add('manual-mode');
+            manualBtn.classList.add('active');
+            autoBtn.classList.remove('active');
+        });
+
+        // 3. Logika Drag to Scroll (Geser Manual)
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        let hasDragged = false; // Untuk bedakan klik dan drag
+
+        wrapper.addEventListener('mousedown', (e) => {
+            if (!wrapper.classList.contains('manual-mode')) return;
+            isDown = true;
+            hasDragged = false;
+            startX = e.pageX - wrapper.offsetLeft;
+            scrollLeft = wrapper.scrollLeft;
+        });
+
+        wrapper.addEventListener('mouseleave', () => { isDown = false; });
+        wrapper.addEventListener('mouseup', () => { 
+            isDown = false; 
+            // Beri jeda micro agar click event bisa cek status hasDragged
+            setTimeout(() => { hasDragged = false; }, 100);
+        });
+
+        wrapper.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - wrapper.offsetLeft;
+            const walk = (x - startX) * 1.5; // Kecepatan drag
+            if (Math.abs(walk) > 5) hasDragged = true; // Anggap drag jika gerak > 5px
+            wrapper.scrollLeft = scrollLeft - walk;
+        });
+
+        // 4. Logika Lightbox (Klik untuk Perbesar)
+        track.addEventListener('click', (e) => {
+            // Abaikan jika baru saja selesai drag di mode manual
+            if (hasDragged) return;
+
+            const card = e.target.closest('.photo-card');
+            if (card && card.dataset.url) {
+                lightboxImg.src = card.dataset.url;
+                lightboxCaption.innerText = card.dataset.desc;
+                lightbox.classList.add('active');
+            }
+        });
+
+        // Tutup Lightbox
+        closeBtn.addEventListener('click', () => {
+            lightbox.classList.remove('active');
+        });
+
+        // Tutup lightbox jika klik area luar foto
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) {
+                lightbox.classList.remove('active');
+            }
+        });
+
+        // Tutup lightbox dengan tombol ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                lightbox.classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
