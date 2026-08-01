@@ -24,22 +24,28 @@
 
         .gallery-wrapper {
             width: 100%;
-            overflow: hidden;
+            overflow-x: auto; /* Untuk swipe native di HP */
+            overflow-y: hidden;
             position: relative;
+            cursor: grab;
             mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
             -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+            -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
         }
+
+        .gallery-wrapper:active {
+            cursor: grabbing;
+        }
+
+        /* Sembunyikan scrollbar agar seamless */
+        .gallery-wrapper::-webkit-scrollbar { display: none; }
+        .gallery-wrapper { -ms-overflow-style: none; scrollbar-width: none; }
 
         .gallery-track {
             display: flex;
-            gap: 15px; 
+            gap: 15px;
             width: max-content;
             padding: 10px 0;
-            animation: scroll-horizontal 40s linear infinite;
-        }
-
-        .gallery-wrapper:hover .gallery-track {
-            animation-play-state: paused; 
         }
 
         .photo-card {
@@ -54,6 +60,9 @@
             border: none; 
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .photo-card:hover {
@@ -66,7 +75,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            pointer-events: none;
+            pointer-events: none; /* Mencegah drag image bawaan browser */
         }
 
         .photo-caption {
@@ -89,12 +98,7 @@
             transform: translateY(0);
         }
 
-        @keyframes scroll-horizontal {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-
-        /* Lightbox (Mengisi layar penuh) */
+        /* Lightbox (Full Screen) */
         .lightbox {
             display: none;
             position: fixed;
@@ -172,20 +176,11 @@
         .close-btn:hover {
             background: #4caf50;
         }
-        
-        /* Pesan instruksi keluar (khusus mobile) */
-        .exit-hint {
-            color: #888;
-            margin-top: 20px;
-            font-size: 0.8rem;
-            display: none;
-        }
 
         @media (max-width: 768px) {
             .photo-card { width: 250px; height: 170px; }
             .photo-caption { font-size: 0.75rem; }
             .lightbox-caption { font-size: 0.95rem; }
-            .exit-hint { display: block; }
         }
     </style>
 </head>
@@ -201,7 +196,6 @@
             <img id="lightboxImg" src="" alt="">
             <p class="lightbox-caption" id="lightboxCaption"></p>
             <p class="lightbox-source">(Sumber Foto: Dokumentasi WALHI Jatim)</p>
-            <p class="exit-hint">Tekan tombol kembali (Back) atau arahkan kursor ke atas untuk keluar</p>
         </div>
     </div>
 
@@ -279,8 +273,87 @@
         photos.forEach(photo => track.appendChild(createPhotoCard(photo)));
         photos.forEach(photo => track.appendChild(createPhotoCard(photo, true)));
 
-        // Fungsi Buka Lightbox + Fullscreen
+        // === LOGIKA HIBRIDA (AUTO + MANUAL) ===
+        let isPaused = false;
+        let resumeTimeout;
+        let isMouseDown = false;
+        let startX, startScrollLeft;
+        let hasDragged = false;
+
+        // 1. Auto Scroll Loop
+        function autoScroll() {
+            if (!isPaused) {
+                wrapper.scrollLeft += 0.5; // Kecepatan geser otomatis
+                if (wrapper.scrollLeft >= track.scrollWidth / 2) {
+                    wrapper.scrollLeft = 0;
+                }
+            }
+            requestAnimationFrame(autoScroll);
+        }
+        requestAnimationFrame(autoScroll);
+
+        // Helper Pause/Resume
+        function pauseAutoScroll() {
+            isPaused = true;
+            clearTimeout(resumeTimeout);
+        }
+        function resumeAutoScroll() {
+            // Lanjut otomatis 2.5 detik setelah user berhenti menggeser
+            resumeTimeout = setTimeout(() => {
+                isPaused = false;
+            }, 2500);
+        }
+
+        // 2. Desktop Drag (Mouse)
+        wrapper.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            hasDragged = false;
+            startX = e.pageX;
+            startScrollLeft = wrapper.scrollLeft;
+            pauseAutoScroll();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isMouseDown) return;
+            e.preventDefault();
+            const walk = (e.pageX - startX) * 1.5;
+            if (Math.abs(walk) > 5) hasDragged = true;
+            wrapper.scrollLeft = startScrollLeft - walk;
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                resumeAutoScroll();
+            }
+        });
+
+        // 3. Mobile Swipe (Native Scroll, hanya deteksi untuk pause)
+        let touchStartX = 0;
+        wrapper.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].pageX;
+            hasDragged = false;
+            pauseAutoScroll();
+        }, { passive: true });
+
+        wrapper.addEventListener('touchmove', (e) => {
+            const walk = e.touches[0].pageX - touchStartX;
+            if (Math.abs(walk) > 5) hasDragged = true;
+            // Biarkan browser menangani gerakan scrollnya agar mulus (native)
+        }, { passive: true });
+
+        wrapper.addEventListener('touchend', () => {
+            resumeAutoScroll();
+        });
+
+        // === LOGIKA LIGHTBOX (KLIK = FULLSCREEN) ===
         track.addEventListener('click', (e) => {
+            // Jangan buka lightbox jika user baru saja nge-drag/swipe
+            if (hasDragged) {
+                hasDragged = false;
+                return;
+            }
+
             const card = e.target.closest('.photo-card');
             if (card && card.dataset.url) {
                 lightboxImg.src = card.dataset.url;
@@ -297,7 +370,7 @@
             }
         });
 
-        // Fungsi Tutup Lightbox + Keluar Fullscreen
+        // Fungsi Tutup Lightbox
         const closeLightbox = () => {
             lightbox.classList.remove('active');
             if (document.fullscreenElement && document.exitFullscreen) {
