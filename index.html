@@ -19,17 +19,17 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 30px 20px;
+            padding: 20px 15px;
         }
 
         header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             z-index: 10;
         }
 
         header h1 {
-            font-size: 2.2rem;
+            font-size: 2rem;
             color: #2e7d32;
             font-weight: 800;
             text-transform: uppercase;
@@ -61,12 +61,14 @@
         /* Tombol Opsi Gerakan */
         .controls {
             display: flex;
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         .controls button {
-            padding: 8px 20px;
+            padding: 8px 16px;
             border: 2px solid #4caf50;
             background-color: white;
             color: #2e7d32;
@@ -74,6 +76,7 @@
             cursor: pointer;
             font-weight: bold;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .controls button.active,
@@ -88,16 +91,16 @@
             max-width: 1200px;
             overflow: hidden;
             position: relative;
-            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
-            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
 
-        /* Mode Manual: Mengaktifkan Scroll/Drag Horizontal */
         .gallery-wrapper.manual-mode {
             overflow-x: auto;
             cursor: grab;
             scrollbar-width: thin;
             scrollbar-color: #4caf50 #e8f5e9;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll di iOS */
         }
 
         .gallery-wrapper.manual-mode:active {
@@ -105,7 +108,7 @@
         }
 
         .gallery-wrapper.manual-mode::-webkit-scrollbar {
-            height: 8px;
+            height: 6px;
         }
 
         .gallery-wrapper.manual-mode::-webkit-scrollbar-thumb {
@@ -113,15 +116,13 @@
             border-radius: 10px;
         }
 
-        /* Trek Foto */
         .gallery-track {
             display: flex;
-            gap: 25px;
+            gap: 20px;
             width: max-content;
             padding: 10px 0;
         }
 
-        /* Animasi Otomatis (Hanya aktif jika tidak di manual-mode) */
         .gallery-wrapper:not(.manual-mode) .gallery-track {
             animation: scroll-horizontal 50s linear infinite;
         }
@@ -132,8 +133,8 @@
 
         .photo-card {
             position: relative;
-            width: 350px;
-            height: 250px;
+            width: 320px;
+            height: 230px;
             border-radius: 10px;
             overflow: hidden;
             flex-shrink: 0;
@@ -141,7 +142,9 @@
             box-shadow: 0 4px 15px rgba(46, 125, 50, 0.15);
             transition: transform 0.3s ease;
             border: 1px solid #e0e0e0;
-            user-select: none; /* Mencegah gambar ter-select saat di-drag */
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .photo-card:hover {
@@ -154,7 +157,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            pointer-events: none; /* Memudahkan deteksi klik drag */
+            pointer-events: none;
         }
 
         .photo-caption {
@@ -182,7 +185,7 @@
             100% { transform: translateX(-50%); }
         }
 
-        /* Lightbox (Foto Diperbesar) */
+        /* Lightbox */
         .lightbox {
             display: none;
             position: fixed;
@@ -217,7 +220,7 @@
 
         .lightbox-content img {
             max-width: 100%;
-            max-height: 70vh;
+            max-height: 65vh;
             border-radius: 10px;
             box-shadow: 0 15px 50px rgba(0,0,0,0.6);
             border: 4px solid white;
@@ -227,30 +230,63 @@
         .lightbox-caption {
             color: white;
             margin-top: 20px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             line-height: 1.5;
         }
 
         .lightbox-source {
             color: #a5d6a7;
             margin-top: 10px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-style: italic;
         }
 
         .close-btn {
             position: absolute;
-            top: 25px;
-            right: 40px;
+            top: 20px;
+            right: 25px;
             color: white;
-            font-size: 40px;
+            font-size: 35px;
             font-weight: bold;
             cursor: pointer;
             transition: color 0.2s;
+            background: rgba(0,0,0,0.3);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
         }
 
         .close-btn:hover {
             color: #4caf50;
+        }
+
+        /* ===== MEDIA QUERY UNTUK MOBILE ===== */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.4rem; /* Font judul mengecil di HP */
+            }
+            header h2 {
+                font-size: 0.95rem;
+            }
+            .photo-card {
+                width: 260px;  /* Foto mengecil agar pas di layar HP */
+                height: 190px;
+            }
+            .photo-caption {
+                font-size: 0.8rem;
+                padding: 25px 12px 12px;
+            }
+            .lightbox-caption {
+                font-size: 0.9rem;
+            }
+            .controls button {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -265,14 +301,13 @@
 
     <div class="controls">
         <button id="autoBtn" class="active">Geser Otomatis</button>
-        <button id="manualBtn">Geser Manual (Drag/Scroll)</button>
+        <button id="manualBtn">Geser Manual (Drag/Swipe)</button>
     </div>
 
     <div class="gallery-wrapper" id="galleryWrapper">
         <div class="gallery-track" id="galleryTrack"></div>
     </div>
 
-    <!-- Struktur Lightbox -->
     <div class="lightbox" id="lightbox">
         <span class="close-btn" id="closeBtn">&times;</span>
         <div class="lightbox-content">
@@ -327,18 +362,15 @@
         const autoBtn = document.getElementById('autoBtn');
         const manualBtn = document.getElementById('manualBtn');
         
-        // Elemen Lightbox
         const lightbox = document.getElementById('lightbox');
         const lightboxImg = document.getElementById('lightboxImg');
         const lightboxCaption = document.getElementById('lightboxCaption');
         const closeBtn = document.getElementById('closeBtn');
 
-        // 1. Fungsi Membuat Kartu Foto
         function createPhotoCard(photo, isDuplicate = false) {
             const card = document.createElement('div');
             card.className = 'photo-card';
             
-            // Simpan data asli di atribut data-*
             if (!isDuplicate) {
                 card.dataset.url = photo.url;
                 card.dataset.desc = photo.desc;
@@ -347,7 +379,7 @@
             const img = document.createElement('img');
             img.src = photo.url;
             img.alt = photo.desc;
-            img.draggable = false; // Cegah ghost image saat drag
+            img.draggable = false; 
 
             const caption = document.createElement('div');
             caption.className = 'photo-caption';
@@ -358,11 +390,9 @@
             return card;
         }
 
-        // Masukkan foto asli & duplikat untuk loop
         photos.forEach(photo => track.appendChild(createPhotoCard(photo)));
         photos.forEach(photo => track.appendChild(createPhotoCard(photo, true)));
 
-        // 2. Logika Tombol Toggle Mode
         autoBtn.addEventListener('click', () => {
             wrapper.classList.remove('manual-mode');
             autoBtn.classList.add('active');
@@ -375,40 +405,51 @@
             autoBtn.classList.remove('active');
         });
 
-        // 3. Logika Drag to Scroll (Geser Manual)
+        // === LOGIKA DRAG & SWIPE (MOUSE & TOUCH) ===
         let isDown = false;
-        let startX;
-        let scrollLeft;
-        let hasDragged = false; // Untuk bedakan klik dan drag
+        let startX, scrollLeft;
+        let hasDragged = false;
 
-        wrapper.addEventListener('mousedown', (e) => {
+        // Fungsi yang berjalan saat mouse/touch mulai ditekan
+        const startDrag = (pageX) => {
             if (!wrapper.classList.contains('manual-mode')) return;
             isDown = true;
             hasDragged = false;
-            startX = e.pageX - wrapper.offsetLeft;
+            startX = pageX - wrapper.offsetLeft;
             scrollLeft = wrapper.scrollLeft;
-        });
+        };
 
-        wrapper.addEventListener('mouseleave', () => { isDown = false; });
-        wrapper.addEventListener('mouseup', () => { 
-            isDown = false; 
-            // Beri jeda micro agar click event bisa cek status hasDragged
-            setTimeout(() => { hasDragged = false; }, 100);
-        });
-
-        wrapper.addEventListener('mousemove', (e) => {
+        // Fungsi yang berjalan saat mouse/touch digerakkan
+        const moveDrag = (pageX) => {
             if (!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - wrapper.offsetLeft;
-            const walk = (x - startX) * 1.5; // Kecepatan drag
-            if (Math.abs(walk) > 5) hasDragged = true; // Anggap drag jika gerak > 5px
+            const x = pageX - wrapper.offsetLeft;
+            const walk = (x - startX) * 1.5;
+            if (Math.abs(walk) > 5) hasDragged = true; 
             wrapper.scrollLeft = scrollLeft - walk;
-        });
+        };
 
-        // 4. Logika Lightbox (Klik untuk Perbesar)
+        const endDrag = () => {
+            isDown = false;
+            setTimeout(() => { hasDragged = false; }, 100);
+        };
+
+        // Desktop (Mouse Events)
+        wrapper.addEventListener('mousedown', (e) => startDrag(e.pageX));
+        wrapper.addEventListener('mousemove', (e) => {
+            if(isDown) e.preventDefault(); // Cegah select text
+            moveDrag(e.pageX);
+        });
+        wrapper.addEventListener('mouseleave', endDrag);
+        wrapper.addEventListener('mouseup', endDrag);
+
+        // Mobile (Touch Events)
+        wrapper.addEventListener('touchstart', (e) => startDrag(e.touches[0].pageX), { passive: true });
+        wrapper.addEventListener('touchmove', (e) => moveDrag(e.touches[0].pageX), { passive: true });
+        wrapper.addEventListener('touchend', endDrag);
+
+        // === LOGIKA LIGHTBOX ===
         track.addEventListener('click', (e) => {
-            // Abaikan jika baru saja selesai drag di mode manual
-            if (hasDragged) return;
+            if (hasDragged) return; // Jangan buka lightbox jika user baru saja swipe/drag
 
             const card = e.target.closest('.photo-card');
             if (card && card.dataset.url) {
@@ -418,23 +459,12 @@
             }
         });
 
-        // Tutup Lightbox
-        closeBtn.addEventListener('click', () => {
-            lightbox.classList.remove('active');
-        });
-
-        // Tutup lightbox jika klik area luar foto
+        closeBtn.addEventListener('click', () => lightbox.classList.remove('active'));
         lightbox.addEventListener('click', (e) => {
-            if (e.target === lightbox) {
-                lightbox.classList.remove('active');
-            }
+            if (e.target === lightbox) lightbox.classList.remove('active');
         });
-
-        // Tutup lightbox dengan tombol ESC
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                lightbox.classList.remove('active');
-            }
+            if (e.key === 'Escape') lightbox.classList.remove('active');
         });
     </script>
 </body>
